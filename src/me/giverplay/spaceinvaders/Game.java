@@ -1,9 +1,13 @@
 package me.giverplay.spaceinvaders;
 
+import java.applet.Applet;
+import java.applet.AudioClip;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferStrategy;
@@ -11,6 +15,8 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
@@ -22,7 +28,7 @@ public class Game extends Canvas implements Runnable, KeyListener
 	private static final int WIDTH = 160;
 	private static final int HEIGHT = 240;
 	private static final int SCALE = 3;
-	private static final int SIZE = 16;
+	private static final int TSIZE = 16;
 	
 	private ArrayList<Entity> entities = new ArrayList<>();
 	
@@ -36,6 +42,18 @@ public class Game extends Canvas implements Runnable, KeyListener
 	private JFrame frame;
 	
 	private boolean isRunning = false;
+	private boolean gameOver = false;
+	private boolean showGameOver = false;
+	private boolean jaMorreu = false;
+	
+	private int score = 0;
+	private int chances = 10;
+	private int maxChances = 10;
+	private int maxScore = 0;
+	private int gameOverFrames = 0;
+	private int maxGameOverFrames = 20;
+	private int by1 = 0;
+	private int by2 = -HEIGHT;
 	
 	public static void main(String[] args)
 	{
@@ -71,20 +89,29 @@ public class Game extends Canvas implements Runnable, KeyListener
 		
 		try
 		{
-			spritesheet = ImageIO.read(getClass().getResourceAsStream("/Spritesheet.png"));
-		}
-		catch(IOException e)
+			spritesheet = ImageIO.read(getClass().getResource("/Spritesheet.png"));
+			back = ImageIO.read(getClass().getResource("/Back.png"));
+		} 
+		catch (IOException e)
 		{
 			System.out.println(e.getMessage());
 		}
 		
-		player = new Player(WIDTH / 2 - SIZE / 2, HEIGHT - SIZE * 2);
+		player = new Player(WIDTH / 2 - TSIZE / 2, HEIGHT - (TSIZE * 2 + 3));
 		spawner = new Spawner();
 	}
 	
 	public void reset()
 	{
 		entities.clear();
+		score = 0;
+		chances = 10;
+		gameOver = false;
+		showGameOver = false;
+		gameOverFrames = 0;
+		jaMorreu = false;
+		player = new Player(WIDTH / 2 - TSIZE / 2, HEIGHT - (TSIZE * 2 + 3));
+		entities.add(player);
 	}
 	
 	public synchronized void start()
@@ -101,8 +128,7 @@ public class Game extends Canvas implements Runnable, KeyListener
 		try
 		{
 			thread.join();
-		}
-		catch(InterruptedException e)
+		} catch (InterruptedException e)
 		{
 			System.out.println("Interrupted");
 		}
@@ -125,13 +151,13 @@ public class Game extends Canvas implements Runnable, KeyListener
 		double delta = 0.0D;
 		double update = 1000000000 / updates;
 		
-		while(isRunning)
+		while (isRunning)
 		{
 			now = System.nanoTime();
 			delta += (now - lastTime) / update;
 			lastTime = now;
 			
-			if(delta >= 1)
+			if (delta >= 1)
 			{
 				update();
 				render();
@@ -143,19 +169,46 @@ public class Game extends Canvas implements Runnable, KeyListener
 	
 	private void update()
 	{
-		for(int i = 0; i < entities.size(); i++)
+		if (gameOver)
+			return;
+		
+		for (int i = 0; i < entities.size(); i++)
 		{
 			entities.get(i).tick();
 		}
 		
 		spawner.tick();
+		
+		if (score > maxScore)
+			maxScore = score;
+		
+		if (chances <= 0 && !jaMorreu)
+		{
+			jaMorreu = true;
+			matar();
+		}
+	}
+	
+	public void matar()
+	{
+		new Explosion(player.getX(), player.getY(), Sound.explosion);
+		entities.remove(player);
+		
+		new Timer().schedule(new TimerTask()
+		{
+			@Override
+			public void run()
+			{
+				gameOver = true;
+			}
+		}, 1 * 1000);
 	}
 	
 	private void render()
 	{
 		BufferStrategy bs = getBufferStrategy();
 		
-		if(bs == null)
+		if (bs == null)
 		{
 			createBufferStrategy(3);
 			return;
@@ -167,14 +220,86 @@ public class Game extends Canvas implements Runnable, KeyListener
 		g.setColor(Color.BLACK);
 		g.fillRect(0, 0, WIDTH * SCALE, HEIGHT * SCALE);
 		
-		for(int i = 0; i < entities.size(); i++)
+		advanceBackgroun(g);
+		
+		for (int i = 0; i < entities.size(); i++)
 		{
 			entities.get(i).render(g);
 		}
 		
 		smooth.drawImage(image, 0, 0, WIDTH * SCALE, HEIGHT * SCALE, null);
 		
+		renderUI(smooth);
+		
 		bs.show();
+	}
+	
+	public void advanceBackgroun(Graphics g)
+	{
+		if(!gameOver)
+		{
+			by1 += 1;
+			by2 += 1;
+		}
+		
+		if (by1 >= HEIGHT)
+		{
+			by1 = -HEIGHT;
+		}
+		if (by2 >= HEIGHT)
+		{
+			by2 = -HEIGHT;
+		}
+		
+		g.drawImage(back, 0, by1, null);
+		g.drawImage(back, 0, by2, null);
+	}
+	
+	public void renderUI(Graphics g)
+	{
+		g.setColor(Color.white);
+		g.setFont(new Font("calibri", Font.BOLD, 22));
+		
+		String txt = "Record: " + maxScore;
+		g.drawString(txt, WIDTH * SCALE - (g.getFontMetrics().stringWidth(txt) + 10), 18);
+		g.drawString("Score: " + score, 5, 18);
+		
+		for(int i = 0; i < maxChances; i++)
+		{
+			g.setColor(Color.WHITE);
+			g.drawRect(2 + i * 47, HEIGHT * SCALE - 48, 46, 15);
+			
+			if(i < chances)
+			{
+				g.setColor(Color.GRAY);
+				g.fillRect(3 + i * 47, HEIGHT * SCALE - 47, 45, 14);
+			}
+		}
+		
+		if(gameOver)
+		{
+			gameOverFrames++;
+			
+			if(gameOverFrames >= maxGameOverFrames)
+			{
+				gameOverFrames = 0;
+				
+				showGameOver = !showGameOver;
+			}
+			
+			if(showGameOver) 
+			{
+				g.setColor(Color.WHITE);
+				
+				String txt1 = "Game Over";
+				g.setFont(new Font("calibri", Font.BOLD, 32));
+				g.drawString(txt1, (WIDTH * SCALE - g.getFontMetrics().stringWidth(txt1)) / 2, HEIGHT * SCALE / 2 - 50);
+				
+				String txt2 = "Aperte ENTER para reiniciar";
+				g.setFont(new Font("arial", Font.BOLD, 24));
+				g.drawString(txt2,  (WIDTH * SCALE - g.getFontMetrics().stringWidth(txt2)) / 2, HEIGHT * SCALE / 2);
+			}
+		}
 	}
 	
 	@Override
@@ -188,7 +313,7 @@ public class Game extends Canvas implements Runnable, KeyListener
 				player.direita(true);
 				
 				break;
-			
+				
 			case KeyEvent.VK_A:
 			case KeyEvent.VK_LEFT:
 				
@@ -197,7 +322,20 @@ public class Game extends Canvas implements Runnable, KeyListener
 				break;
 				
 			case KeyEvent.VK_SPACE:
-
+			case KeyEvent.VK_F:
+			case KeyEvent.VK_X:
+			case KeyEvent.VK_CONTROL:
+			case KeyEvent.VK_SHIFT:
+				
+				player.shoot();
+				
+				break;
+				
+			case KeyEvent.VK_ENTER:
+				
+				if(gameOver)
+					reset();
+				
 				break;
 				
 			default:
@@ -216,16 +354,12 @@ public class Game extends Canvas implements Runnable, KeyListener
 				player.direita(false);
 				
 				break;
-			
+				
 			case KeyEvent.VK_A:
 			case KeyEvent.VK_LEFT:
 				
 				player.esquerda(false);
 				
-				break;
-				
-			case KeyEvent.VK_SPACE:
-
 				break;
 				
 			default:
@@ -244,12 +378,18 @@ public class Game extends Canvas implements Runnable, KeyListener
 		private BufferedImage sprite;
 		private int x;
 		private int y;
+		private int w;
+		private int h;
+		private int life;
 		
-		public Entity(int x, int y, BufferedImage sprite)
+		public Entity(int x, int y, int w, int h, int life, BufferedImage sprite)
 		{
 			this.x = x;
 			this.y = y;
+			this.w = w;
+			this.h = h;
 			this.sprite = sprite;
+			this.life = life;
 			entities.add(this);
 		}
 		
@@ -261,6 +401,16 @@ public class Game extends Canvas implements Runnable, KeyListener
 		public int getY()
 		{
 			return this.y;
+		}
+		
+		public int getLife()
+		{
+			return life;
+		}
+		
+		public void hit(int hit)
+		{
+			this.life += hit;
 		}
 		
 		public void setX(int x)
@@ -275,7 +425,12 @@ public class Game extends Canvas implements Runnable, KeyListener
 		
 		public void moveX(int move)
 		{
-			this.x += move;
+			int xn = x + move;
+			
+			if (!(xn <= 0 || xn >= WIDTH - TSIZE))
+			{
+				x = xn;
+			}
 		}
 		
 		public void moveY(int move)
@@ -283,19 +438,34 @@ public class Game extends Canvas implements Runnable, KeyListener
 			this.y += move;
 		}
 		
+		public int getWid()
+		{
+			return w;
+		}
+		
+		public int getHei()
+		{
+			return h;
+		}
+		
 		public void destroy()
 		{
 			entities.remove(this);
 		}
 		
-		public void tick()
+		public abstract void tick();
+		
+		public boolean isColliding(Entity e1)
 		{
+			Rectangle rec = new Rectangle(getX(), getY(), getWid(), getHei());
+			Rectangle rec2 = new Rectangle(e1.getX(), e1.getY(), e1.getWid(), e1.getHei());
 			
+			return rec.intersects(rec2);
 		}
 		
 		public void render(Graphics g)
 		{
-			g.drawImage(sprite, getX(), getY(), SIZE, SIZE, null);
+			g.drawImage(sprite, getX(), getY(), TSIZE, TSIZE, null);
 		}
 	}
 	
@@ -303,7 +473,7 @@ public class Game extends Canvas implements Runnable, KeyListener
 	{
 		public Rock(int x, int y)
 		{
-			super(x, y, getSprite(0, SIZE, SIZE, SIZE));
+			super(x, y, TSIZE, TSIZE, 3, getSprite(0, TSIZE, TSIZE, TSIZE));
 		}
 		
 		@Override
@@ -311,8 +481,48 @@ public class Game extends Canvas implements Runnable, KeyListener
 		{
 			moveY(1);
 			
-			if(getY() > HEIGHT)
-				destroy();
+			if (getY() > HEIGHT)
+				sumir();
+			
+			for (int i = 0; i < entities.size(); i++)
+			{
+				Entity e = entities.get(i);
+				
+				if (e instanceof Laser)
+				{
+					if (isColliding(e))
+					{
+						this.hit(-1);
+						e.destroy();
+					}
+				} else if (e == player)
+				{
+					if (isColliding(e))
+					{
+						chances -= 2;
+						destroy();
+					}
+				}
+			}
+			
+			if (this.getLife() <= 0)
+			{
+				score++;
+				this.destroy();
+			}
+		}
+		
+		public void sumir()
+		{
+			super.destroy();
+			chances--;
+		}
+		
+		@Override
+		public void destroy()
+		{
+			new Explosion(getX(), getY(), Sound.explosionRock);
+			super.destroy();
 		}
 	}
 	
@@ -320,10 +530,11 @@ public class Game extends Canvas implements Runnable, KeyListener
 	{
 		private boolean right = false;
 		private boolean left = false;
+		private boolean shooted = false;
 		
 		public Player(int x, int y)
 		{
-			super(x, y, getSprite(0, 0, SIZE, SIZE));
+			super(x, y, TSIZE, TSIZE, 0, getSprite(0, 0, TSIZE, TSIZE));
 		}
 		
 		@Override
@@ -331,13 +542,25 @@ public class Game extends Canvas implements Runnable, KeyListener
 		{
 			int m = 0;
 			
-			if(right)
+			if (right)
 				m++;
 			
-			if(left)
+			if (left)
 				m--;
-				
+			
 			moveX(m * 2);
+			
+			if (shooted)
+			{
+				shooted = false;
+				
+				new Laser(super.getX() + TSIZE / 2 - 1, super.getY() + 3);
+			}
+		}
+		
+		public void shoot()
+		{
+			this.shooted = true;
 		}
 		
 		public void direita(boolean b)
@@ -351,6 +574,77 @@ public class Game extends Canvas implements Runnable, KeyListener
 		}
 	}
 	
+	public class Laser extends Entity
+	{
+		public Laser(int x, int y)
+		{
+			super(x, y, 2, 3, 1, null);
+			Sound.laser.play();
+		}
+		
+		@Override
+		public void tick()
+		{
+			moveY(-6);
+			
+			if (super.getY() <= -TSIZE)
+			{
+				destroy();
+			}
+		}
+		
+		@Override
+		public void render(Graphics g)
+		{
+			g.setColor(Color.RED);
+			g.fillRect(super.getX(), super.getY(), getWid(), getHei());
+		}
+	}
+	
+	public class Explosion extends Entity
+	{
+		private BufferedImage[] sprites = new BufferedImage[4];
+		
+		private int eframes = 0;
+		private int maxEFrames = 5;
+		private int anim = 0;
+		
+		public Explosion(int x, int y, Sound sound)
+		{
+			super(x, y, TSIZE, TSIZE, 0, null);
+			
+			sound.play();
+			
+			for (int i = 0; i < 64; i += TSIZE)
+			{
+				sprites[(int) (i / TSIZE)] = getSprite(i, TSIZE * 2, TSIZE, TSIZE);
+			}
+		}
+		
+		@Override
+		public void tick()
+		{
+			eframes++;
+			
+			if (eframes >= maxEFrames)
+			{
+				eframes = 0;
+				anim++;
+				
+				if (anim >= sprites.length)
+				{
+					destroy();
+				}
+			}
+		}
+		
+		@Override
+		public void render(Graphics g)
+		{
+			g.drawImage(sprites[anim], getX(), getY(), null);
+		}
+	}
+	
 	public class Spawner
 	{
 		private int frame = 0;
@@ -360,11 +654,44 @@ public class Game extends Canvas implements Runnable, KeyListener
 		{
 			frame++;
 			
-			if(frame >= maxF)
+			if (frame >= maxF)
 			{
 				frame = 0;
 				
-				new Rock(rand.nextInt(WIDTH - SIZE), 0);
+				new Rock(rand.nextInt(WIDTH - TSIZE), 0);
+			}
+		}
+	}
+	
+	public static class Sound
+	{
+		public static final Sound explosion = new Sound("/explosion.wav");
+		public static final Sound explosionRock = new Sound("/explosionRock.wav");
+		public static final Sound laser = new Sound("/laser.wav");
+		
+		private AudioClip clip;
+		
+		private Sound(String name)
+		{
+			try
+			{
+				clip = Applet.newAudioClip(Sound.class.getResource(name));
+			} catch (Throwable e)
+			{
+				e.printStackTrace();
+			}
+		}
+		
+		public void play()
+		{
+			try
+			{
+				new Thread(() -> {
+					clip.play();
+				}).start();
+			} catch (Throwable e)
+			{
+				e.printStackTrace();
 			}
 		}
 	}
