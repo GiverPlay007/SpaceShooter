@@ -26,20 +26,18 @@ public class Game extends Canvas implements Runnable, KeyListener
 	private static final long serialVersionUID = 1L;
 	
 	private static final int WIDTH = 160;
-	private static final int HEIGHT = 240;
+	private static final int HEIGHT = 220;
 	private static final int SCALE = 3;
 	private static final int TSIZE = 16;
 	
-	private ArrayList<Entity> entities = new ArrayList<>();
+	private final ArrayList<Entity> entities = new ArrayList<>();
+	private final Random rand = new Random();
 	
-	private Random rand = new Random();
 	private BufferedImage image;
 	private BufferedImage spritesheet;
 	private BufferedImage back;
 	private Spawner spawner;
 	private Player player;
-	private Thread thread;
-	private JFrame frame;
 	
 	private boolean isRunning = false;
 	private boolean gameOver = false;
@@ -48,12 +46,11 @@ public class Game extends Canvas implements Runnable, KeyListener
 	
 	private int score = 0;
 	private int chances = 10;
-	private int maxChances = 10;
 	private int maxScore = 0;
 	private int gameOverFrames = 0;
-	private int maxGameOverFrames = 20;
-	private int by1 = 0;
-	private int by2 = -HEIGHT;
+	
+	private double by1 = 0;
+	private double by2 = -HEIGHT;
 	
 	public static void main(String[] args)
 	{
@@ -72,14 +69,13 @@ public class Game extends Canvas implements Runnable, KeyListener
 	
 	public void setupWindow()
 	{
-		frame = new JFrame("Game 07 - Space Invaders Clone");
-		frame.setResizable(false);
-		frame.setPreferredSize(new Dimension(WIDTH * SCALE, HEIGHT * SCALE));
-		frame.pack();
+		this.setPreferredSize(new Dimension(WIDTH * SCALE, HEIGHT * SCALE));
+		JFrame frame = new JFrame("Game 07 - Space Invaders Clone");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setLocationRelativeTo(null);
+		frame.setResizable(false);
 		frame.add(this);
 		frame.pack();
+		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 	}
 	
@@ -117,21 +113,8 @@ public class Game extends Canvas implements Runnable, KeyListener
 	public synchronized void start()
 	{
 		isRunning = true;
-		thread = new Thread(this, "Main Thread");
+		Thread thread = new Thread(this, "Main Thread");
 		thread.start();
-	}
-	
-	public synchronized void stop()
-	{
-		isRunning = false;
-		
-		try
-		{
-			thread.join();
-		} catch (InterruptedException e)
-		{
-			System.out.println("Interrupted");
-		}
 	}
 	
 	public BufferedImage getSprite(int x, int y, int w, int h)
@@ -170,7 +153,9 @@ public class Game extends Canvas implements Runnable, KeyListener
 	private void update()
 	{
 		if (gameOver)
+		{
 			return;
+		}
 		
 		for (int i = 0; i < entities.size(); i++)
 		{
@@ -180,7 +165,9 @@ public class Game extends Canvas implements Runnable, KeyListener
 		spawner.tick();
 		
 		if (score > maxScore)
+		{
 			maxScore = score;
+		}
 		
 		if (chances <= 0 && !jaMorreu)
 		{
@@ -201,7 +188,7 @@ public class Game extends Canvas implements Runnable, KeyListener
 			{
 				gameOver = true;
 			}
-		}, 1 * 1000);
+		}, 1000);
 	}
 	
 	private void render()
@@ -220,11 +207,11 @@ public class Game extends Canvas implements Runnable, KeyListener
 		g.setColor(Color.BLACK);
 		g.fillRect(0, 0, WIDTH * SCALE, HEIGHT * SCALE);
 		
-		advanceBackgroun(g);
+		advanceBackground(g);
 		
-		for (int i = 0; i < entities.size(); i++)
+		for(Entity entity : entities)
 		{
-			entities.get(i).render(g);
+			entity.render(g);
 		}
 		
 		smooth.drawImage(image, 0, 0, WIDTH * SCALE, HEIGHT * SCALE, null);
@@ -234,25 +221,26 @@ public class Game extends Canvas implements Runnable, KeyListener
 		bs.show();
 	}
 	
-	public void advanceBackgroun(Graphics g)
+	public void advanceBackground(Graphics g)
 	{
 		if(!gameOver)
 		{
-			by1 += 1;
-			by2 += 1;
+			by1 += 0.5;
+			by2 += 0.5;
 		}
 		
 		if (by1 >= HEIGHT)
 		{
 			by1 = -HEIGHT;
 		}
+		
 		if (by2 >= HEIGHT)
 		{
 			by2 = -HEIGHT;
 		}
 		
-		g.drawImage(back, 0, by1, null);
-		g.drawImage(back, 0, by2, null);
+		g.drawImage(back, 0, (int) by1, null);
+		g.drawImage(back, 0, (int) by2, null);
 	}
 	
 	public void renderUI(Graphics g)
@@ -261,18 +249,18 @@ public class Game extends Canvas implements Runnable, KeyListener
 		g.setFont(new Font("calibri", Font.BOLD, 22));
 		
 		String txt = "Record: " + maxScore;
-		g.drawString(txt, WIDTH * SCALE - (g.getFontMetrics().stringWidth(txt) + 10), 18);
+		g.drawString(txt, WIDTH * SCALE - (g.getFontMetrics().stringWidth(txt)) - 10, 18);
 		g.drawString("Score: " + score, 5, 18);
 		
-		for(int i = 0; i < maxChances; i++)
+		for(int i = 0; i < 10; i++)
 		{
 			g.setColor(Color.WHITE);
-			g.drawRect(2 + i * 47, HEIGHT * SCALE - 48, 46, 15);
+			g.drawRect(5 + i * 47, HEIGHT * SCALE - 21, 46, 15);
 			
 			if(i < chances)
 			{
 				g.setColor(Color.GRAY);
-				g.fillRect(3 + i * 47, HEIGHT * SCALE - 47, 45, 14);
+				g.fillRect(6 + i * 47, HEIGHT * SCALE - 20, 45, 14);
 			}
 		}
 		
@@ -280,10 +268,9 @@ public class Game extends Canvas implements Runnable, KeyListener
 		{
 			gameOverFrames++;
 			
-			if(gameOverFrames >= maxGameOverFrames)
+			if(gameOverFrames >= 30)
 			{
 				gameOverFrames = 0;
-				
 				showGameOver = !showGameOver;
 			}
 			
@@ -293,13 +280,18 @@ public class Game extends Canvas implements Runnable, KeyListener
 				
 				String txt1 = "Game Over";
 				g.setFont(new Font("calibri", Font.BOLD, 32));
-				g.drawString(txt1, (WIDTH * SCALE - g.getFontMetrics().stringWidth(txt1)) / 2, HEIGHT * SCALE / 2 - 50);
+				g.drawString(txt1, screenMiddle(g, txt), HEIGHT * SCALE / 2 - 50);
 				
 				String txt2 = "Aperte ENTER para reiniciar";
 				g.setFont(new Font("arial", Font.BOLD, 24));
-				g.drawString(txt2,  (WIDTH * SCALE - g.getFontMetrics().stringWidth(txt2)) / 2, HEIGHT * SCALE / 2);
+				g.drawString(txt2,  screenMiddle(g, txt2), HEIGHT * SCALE / 2);
 			}
 		}
+	}
+	
+	private int screenMiddle(Graphics g, String txt)
+	{
+		return (WIDTH * SCALE - g.getFontMetrics().stringWidth(txt)) / 2;
 	}
 	
 	@Override
@@ -327,7 +319,7 @@ public class Game extends Canvas implements Runnable, KeyListener
 			case KeyEvent.VK_CONTROL:
 			case KeyEvent.VK_SHIFT:
 				
-				player.shoot();
+				player.shoot(true);
 				
 				break;
 				
@@ -352,14 +344,21 @@ public class Game extends Canvas implements Runnable, KeyListener
 			case KeyEvent.VK_RIGHT:
 				
 				player.direita(false);
-				
 				break;
 				
 			case KeyEvent.VK_A:
 			case KeyEvent.VK_LEFT:
 				
 				player.esquerda(false);
+				break;
+			
+			case KeyEvent.VK_SPACE:
+			case KeyEvent.VK_F:
+			case KeyEvent.VK_X:
+			case KeyEvent.VK_CONTROL:
+			case KeyEvent.VK_SHIFT:
 				
+				player.shoot(false);
 				break;
 				
 			default:
@@ -368,18 +367,17 @@ public class Game extends Canvas implements Runnable, KeyListener
 	}
 	
 	@Override
-	public void keyTyped(KeyEvent arg0)
-	{
-		
-	}
+	public void keyTyped(KeyEvent arg0) {	}
 	
 	public abstract class Entity
 	{
-		private BufferedImage sprite;
+		private final BufferedImage sprite;
+		
+		private final int w;
+		private final int h;
+		
 		private int x;
 		private int y;
-		private int w;
-		private int h;
 		private int life;
 		
 		public Entity(int x, int y, int w, int h, int life, BufferedImage sprite)
@@ -411,16 +409,6 @@ public class Game extends Canvas implements Runnable, KeyListener
 		public void hit(int hit)
 		{
 			this.life += hit;
-		}
-		
-		public void setX(int x)
-		{
-			this.x = x;
-		}
-		
-		public void setY(int y)
-		{
-			this.y = y;
 		}
 		
 		public void moveX(int move)
@@ -484,20 +472,20 @@ public class Game extends Canvas implements Runnable, KeyListener
 			if (getY() > HEIGHT)
 				sumir();
 			
-			for (int i = 0; i < entities.size(); i++)
+			for(int i = 0; i < entities.size(); i++)
 			{
 				Entity e = entities.get(i);
 				
-				if (e instanceof Laser)
+				if(e instanceof Laser)
 				{
-					if (isColliding(e))
+					if(isColliding(e))
 					{
 						this.hit(-1);
 						e.destroy();
 					}
-				} else if (e == player)
+				} else if(e == player)
 				{
-					if (isColliding(e))
+					if(isColliding(e))
 					{
 						chances -= 2;
 						destroy();
@@ -531,6 +519,9 @@ public class Game extends Canvas implements Runnable, KeyListener
 		private boolean right = false;
 		private boolean left = false;
 		private boolean shooted = false;
+		private boolean shootLocked = false;
+		
+		private int shootFrames = 0;
 		
 		public Player(int x, int y)
 		{
@@ -550,17 +541,29 @@ public class Game extends Canvas implements Runnable, KeyListener
 			
 			moveX(m * 2);
 			
+			if(shootLocked)
+			{
+				shootFrames++;
+				
+				if(shootFrames >= 15)
+				{
+					shootFrames = 0;
+					shootLocked = false;
+				}
+				
+				return;
+			}
+			
 			if (shooted)
 			{
-				shooted = false;
-				
+				shootLocked = true;
 				new Laser(super.getX() + TSIZE / 2 - 1, super.getY() + 3);
 			}
 		}
 		
-		public void shoot()
+		public void shoot(boolean shooted)
 		{
-			this.shooted = true;
+			this.shooted = shooted;
 		}
 		
 		public void direita(boolean b)
@@ -603,10 +606,9 @@ public class Game extends Canvas implements Runnable, KeyListener
 	
 	public class Explosion extends Entity
 	{
-		private BufferedImage[] sprites = new BufferedImage[4];
+		private final BufferedImage[] sprites = new BufferedImage[4];
 		
 		private int eframes = 0;
-		private int maxEFrames = 5;
 		private int anim = 0;
 		
 		public Explosion(int x, int y, Sound sound)
@@ -617,7 +619,7 @@ public class Game extends Canvas implements Runnable, KeyListener
 			
 			for (int i = 0; i < 64; i += TSIZE)
 			{
-				sprites[(int) (i / TSIZE)] = getSprite(i, TSIZE * 2, TSIZE, TSIZE);
+				sprites[i / TSIZE] = getSprite(i, TSIZE * 2, TSIZE, TSIZE);
 			}
 		}
 		
@@ -626,7 +628,7 @@ public class Game extends Canvas implements Runnable, KeyListener
 		{
 			eframes++;
 			
-			if (eframes >= maxEFrames)
+			if (eframes >= 5)
 			{
 				eframes = 0;
 				anim++;
@@ -648,13 +650,12 @@ public class Game extends Canvas implements Runnable, KeyListener
 	public class Spawner
 	{
 		private int frame = 0;
-		private int maxF = 100;
 		
 		public void tick()
 		{
 			frame++;
 			
-			if (frame >= maxF)
+			if (frame >= 100)
 			{
 				frame = 0;
 				
@@ -676,7 +677,8 @@ public class Game extends Canvas implements Runnable, KeyListener
 			try
 			{
 				clip = Applet.newAudioClip(Sound.class.getResource(name));
-			} catch (Throwable e)
+			}
+			catch (Throwable e)
 			{
 				e.printStackTrace();
 			}
@@ -686,10 +688,9 @@ public class Game extends Canvas implements Runnable, KeyListener
 		{
 			try
 			{
-				new Thread(() -> {
-					clip.play();
-				}).start();
-			} catch (Throwable e)
+				new Thread(() -> clip.play()).start();
+			}
+			catch (Throwable e)
 			{
 				e.printStackTrace();
 			}
