@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="Space Invaders Clone:jar">
-    <output-path>$PROJECT_DIR$/bin/</output-path>
-    <root id="archive" name="Danki - Space Invaders Clone.jar">
-      <element id="module-output" name="Danki - Space Invaders Clone" />
-    </root>
-  </artifact>
-</component>
