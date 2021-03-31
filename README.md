@@ -21,5 +21,6 @@ cd build/libs
 # Executamos!
 java -jar space-shooter-1.0.jar
 ```
+---
 
 Feito com muito ❤️ e ☕ por [Will](https://github.com/GiverPlay007).
