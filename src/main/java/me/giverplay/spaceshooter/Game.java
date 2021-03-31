@@ -1,4 +1,4 @@
-package me.giverplay.spaceinvaders;
+package me.giverplay.spaceshooter;
 
 import java.applet.Applet;
 import java.applet.AudioClip;
@@ -70,7 +70,7 @@ public class Game extends Canvas implements Runnable, KeyListener
 	public void setupWindow()
 	{
 		this.setPreferredSize(new Dimension(WIDTH * SCALE, HEIGHT * SCALE));
-		JFrame frame = new JFrame("Game 07 - Space Invaders Clone");
+		JFrame frame = new JFrame("Game 07 - Space Shooter");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setResizable(false);
 		frame.add(this);

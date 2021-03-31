@@ -3,7 +3,19 @@ plugins {
 }
 
 group 'me.giverplay'
-version '1.0-SNAPSHOT'
+version '1.0'
+
+jar {
+    manifest {
+        attributes "Main-Class": "me.giverplay.spaceshooter.Game"
+    }
+
+    from {
+        configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
 
 repositories {
     mavenCentral()
