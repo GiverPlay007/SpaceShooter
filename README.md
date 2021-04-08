@@ -2,6 +2,8 @@
 Jogo estilo [Shoot 'em up](https://en.wikipedia.org/wiki/Shoot_%27em_up), desenvolvido em [Java](https://www.java.com/).  
 Este é um projeto do [Curso de Desenvolvimento de Jogos](https://cursos.dankicode.com/curso-dev-games) da [Danki Code](http://cursos.dankicode.com/).
 
+---
+
 ## ⚒️ Compilação e execução
 Vamos assumir que as variáveis JAVA_HOME e PATH estão devidamente configuradas.
 
