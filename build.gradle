@@ -5,6 +5,9 @@ plugins {
 group 'me.giverplay'
 version '1.0'
 
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
 jar {
     manifest {
         attributes "Main-Class": "me.giverplay.spaceshooter.Game"
