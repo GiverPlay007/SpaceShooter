@@ -64,6 +64,7 @@ public class Game extends Canvas implements Runnable, KeyListener
 		
 		addKeyListener(this);
 		
+		Sound.fix();
 		start();
 	}
 	
@@ -671,6 +672,8 @@ public class Game extends Canvas implements Runnable, KeyListener
 		public static final Sound laser = new Sound("/laser.wav");
 		
 		private AudioClip clip;
+		
+		public static void fix() { } // Ok, é uma forma bem preguiçosa de se arrumar
 		
 		private Sound(String name)
 		{
