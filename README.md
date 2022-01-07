@@ -9,10 +9,10 @@ Vamos assumir que as variáveis JAVA_HOME e PATH estão devidamente configuradas
 
 ```bat
 # Clonamos o repositório
-git clone https://github.com/GiverPlay007/space-shooter.git
+git clone https://github.com/GiverPlay007/SpaceShooter.git
 
 # Navegamos até o projeto
-cd space-shooter
+cd SpaceShooter
 
 # Compilamos (Windows)
 gradlew build
